@@ -246,6 +246,13 @@ const resolvers = {
     },
 
     me: (root, args, context) => {
+      if (!context.currentUser) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        }); 
+      }
       return context.currentUser;
     }
   },
@@ -330,7 +337,7 @@ const resolvers = {
         { name: args.name },
         { born: args.setBornTo },
         {
-          new: true,
+          returnDocument: 'after',
           runValidators: true
         }
       );
@@ -369,7 +376,7 @@ const resolvers = {
         tokenPayload,
         process.env.JWT_SECRET
       );
-
+      
       return {
         value: token
       };

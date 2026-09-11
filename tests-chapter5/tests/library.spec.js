@@ -149,7 +149,6 @@ describe('Library app', () => {
 
     test('recommendations shows books in favorite genre', async ({ page }) => {
       await page.getByRole('button', { name: 'recommend' }).click()
-
       await expect(
         page.getByRole('heading', { name: 'recommendations' }),
       ).toBeVisible()

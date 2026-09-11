@@ -7,13 +7,23 @@ const User = require("./models/user")
 
 
 const getUserFromAuthHeader = async (auth) => {
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return null
+
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return null;
   }
- 
-  const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
-  return User.findById(decodedToken.id).populate('friends')
-}
+
+  try {
+    const token = auth.substring(7);
+
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decodedToken.id);
+
+    return user;
+  } catch (error) {
+    return null;
+  }
+};
 
 const startServer = async (port) => {
     const server = new ApolloServer({
