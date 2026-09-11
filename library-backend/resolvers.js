@@ -247,11 +247,7 @@ const resolvers = {
 
     me: (root, args, context) => {
       if (!context.currentUser) {
-        throw new GraphQLError("Not authenticated", {
-          extensions: {
-            code: "UNAUTHENTICATED"
-          }
-        }); 
+        return null
       }
       return context.currentUser;
     }
