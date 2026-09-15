@@ -3,6 +3,7 @@ import { useMutation } from '@apollo/client/react'
 import { ADD_BOOK } from '../mutations/books.jsx'
 import { ALL_BOOKS, ALL_BOOKS_NO_GENRE } from '../queries/books.jsx'
 import { ALL_AUTHORS } from '../queries/authors.jsx'
+import { addBooksToCache } from '../utils/apolloCache.js'
 
 const NewBook = (props) => {
   const [title, setTitle] = useState('')
@@ -12,6 +13,10 @@ const NewBook = (props) => {
   const [genres, setGenres] = useState([])
   const [createBook] = useMutation(ADD_BOOK, {
     refetchQueries: [{ query: ALL_BOOKS }, { query: ALL_BOOKS_NO_GENRE}, { query: ALL_AUTHORS }],
+    update: (cache, response) => {
+      const addedBook = response.data.addBook
+      addBooksToCache(cache, addedBook)
+    },
   })
 
   if (!props.show) {
@@ -38,6 +43,7 @@ const NewBook = (props) => {
     setGenres(genres.concat(genre))
     setGenre('')
   }
+
 
   return (
     <div>

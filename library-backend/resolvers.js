@@ -4,6 +4,7 @@ const Book = require('./models/book')
 const User = require('./models/user')
 const { GraphQLError } = require('graphql')
 const jwt = require('jsonwebtoken')
+const { PubSub } = require('graphql-subscriptions')
 
 // let authors = [
 //   {
@@ -208,6 +209,7 @@ const jwt = require('jsonwebtoken')
 //   },
 // }
 
+const pubsub = new PubSub();
 
 const resolvers = {
   Query: {
@@ -242,7 +244,26 @@ const resolvers = {
     },
 
     allAuthors: async () => {
-      return await Author.find({});
+      //return await Author.find({});
+      const authors = await Author.find({});
+
+    const bookCounts = await Book.aggregate([
+      {
+        $group: {
+          _id: "$author",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const countByAuthorId = new Map(
+      bookCounts.map((item) => [item._id.toString(), item.count])
+    );
+
+    return authors.map((author) => ({
+      ...author.toObject(),
+      bookCount: countByAuthorId.get(author._id.toString()) || 0,
+    }));
     },
 
     me: (root, args, context) => {
@@ -255,12 +276,7 @@ const resolvers = {
 
   Author: {
     id: (root) => root._id.toString(),
-
-    bookCount: async (root) => {
-      return await Book.countDocuments({
-        author: root._id
-      });
-    }
+    bookCount: (root) => root.bookCount ?? 0,
   },
 
   Book: {
@@ -299,7 +315,14 @@ const resolvers = {
           author: author._id
         });
 
-        return await newBook.populate("author");
+        const populatedBook = await newBook.populate("author");
+
+        await pubsub.publish("BOOK_ADDED", {
+          bookAdded: populatedBook,
+        });
+
+        return populatedBook;
+
       } catch (error) {
         console.error(error);
 
@@ -387,5 +410,10 @@ const resolvers = {
       return true
     },    
   },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterableIterator("BOOK_ADDED")
+    }
+  }
 }
 module.exports = resolvers
